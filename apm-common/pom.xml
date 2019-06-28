@@ -9,17 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>apm-sniffer</artifactId>
+    <artifactId>apm-common</artifactId>
     <packaging>pom</packaging>
-    <modules>
-        <module>apm-agent</module>
-        <module>apm-agent-core</module>
-        <module>apm-agent-jul</module>
-    </modules>
-
-    <properties>
-        <compiler.version>1.6</compiler.version>
-        <shade.package>org.apache.skywalking.apm.dependencies</shade.package>
-    </properties>
 
 </project>
