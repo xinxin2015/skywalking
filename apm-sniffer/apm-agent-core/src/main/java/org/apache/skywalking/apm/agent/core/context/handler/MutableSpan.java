@@ -341,11 +341,7 @@ public final class MutableSpan implements Cloneable {
      * Indicates we are contributing to a span started by another tracer (ex on a different host).
      * Defaults to false.
      *
-     *
-     *
-     *
-     *
-     * @see org.apache.skywalking.apm.agent.core.context.Tracer#joinSpan(
+     *@see org.apache.skywalking.apm.agent.core.context.Tracer#joinSpan(
      * org.apache.skywalking.apm.agent.core.context.propagation.TraceContext)
      * @see zipkin2.Span#shared()
      */
