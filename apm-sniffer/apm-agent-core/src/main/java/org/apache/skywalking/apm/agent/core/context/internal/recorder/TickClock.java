@@ -25,4 +25,12 @@ final class TickClock implements Clock {
             + "baseTickNanos=" + baseTickNanos
             + "}";
     }
+
+    public long getBaseEpochMicros() {
+        return baseEpochMicros;
+    }
+
+    public long getBaseTickNanos() {
+        return baseTickNanos;
+    }
 }

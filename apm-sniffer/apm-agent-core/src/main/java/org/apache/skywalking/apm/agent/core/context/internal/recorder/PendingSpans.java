@@ -17,15 +17,28 @@ import org.apache.skywalking.apm.agent.core.util.Assert;
 import org.apache.skywalking.apm.agent.logging.Log;
 import org.apache.skywalking.apm.agent.logging.LogFactory;
 
+
+/**
+ * Similar to Finagle's deadline span map, except this is GC pressure as opposed to timeout driven.
+ * This means there's no bookkeeping thread required in order to flush orphaned spans.
+ *
+ * <p>Spans are weakly referenced by their owning context. When the keys are collected, they are
+ * transferred to a queue, waiting to be reported. A call to modify any span will implicitly flush
+ * orphans to Zipkin. Spans in this state will have a "brave.flush" annotation added to them.
+ *
+ * <p>The internal implementation is derived from WeakConcurrentMap by Rafael Winterhalter. See
+ * https://github.com/raphw/weak-lock-free/blob/master/src/main/java/com/blogspot/mydailyjava/weaklockfree/WeakConcurrentMap.java
+ */
 public final class PendingSpans extends ReferenceQueue<TraceContext> {
 
     private static final Log logger = LogFactory.getLog(PendingSpans.class);
 
+    // Even though we only put by RealKey, we allow get and remove by LookupKey
     private final ConcurrentMap<Object, PendingSpan> delegate = new ConcurrentHashMap<>(64);
 
     private final Clock clock;
 
-    private final FinishedSpanHandler handler;
+    private final FinishedSpanHandler handler; // Used when flushing spans
 
     private final AtomicBoolean noop;
 
@@ -50,8 +63,30 @@ public final class PendingSpans extends ReferenceQueue<TraceContext> {
         }
 
         // save overhead calculating time if the parent is in-progress (usually is)
+        TickClock clock = getClockFromParent(context);
+        if (clock == null) {
+            clock = new TickClock(this.clock.currentTimeMicroseconds(),System.nanoTime());
+            if (start) {
+                data.startTimestamp(clock.getBaseEpochMicros());
+            }
+        } else if (start) {
+            data.startTimestamp(clock.getBaseEpochMicros());
+        }
+
+        PendingSpan pendingSpan = new PendingSpan(data,clock);
+        PendingSpan previousSpan = delegate.putIfAbsent(new RealKey(context,this),pendingSpan);
+        if (previousSpan != null) {
+            return previousSpan; // lost race
+        }
+
+        if (logger.isDebugEnabled()) {
+            pendingSpan.caller = new Throwable("Thread " + Thread.currentThread().getName() + " "
+                + "allocated span here");
+        }
+        return pendingSpan;
     }
 
+    /** Trace contexts are equal only on trace ID and span ID. try to get the parent's clock */
     @Nullable
     private TickClock getClockFromParent(TraceContext context) {
         long parentId = context.parentIdAsLong();
@@ -68,6 +103,15 @@ public final class PendingSpans extends ReferenceQueue<TraceContext> {
         return parent != null ? (TickClock) parent.clock() : null;
     }
 
+    /** @see org.apache.skywalking.apm.agent.core.context.Span#abandon() */
+    public boolean remove(TraceContext context) {
+        Assert.notNull(context,"context can not be null");
+        PendingSpan last = delegate.remove(context);
+        reportOrphanedSpans();
+        return last != null;
+    }
+
+    /** Reports spans orphaned by garbage collection. */
     private void reportOrphanedSpans() {
         RealKey contextKey;
 
@@ -103,13 +147,20 @@ public final class PendingSpans extends ReferenceQueue<TraceContext> {
                 Platform.get().log("error reporting {0}", context, ex);
             }
         }
-
     }
 
+    /**
+     * Real keys contain a reference to the real context associated with a span. This is a weak
+     * reference, so that we get notified on GC pressure.
+     *
+     * <p>Since {@linkplain TraceContext}'s hash code is final, it is used directly both here and in
+     * lookup keys.
+     */
     static final class RealKey extends WeakReference<TraceContext> {
 
         final int hashCode;
 
+        // Copy the identity fields from the trace context, so we can use them when the reference clears
         final long traceIdHigh, traceId, localRootId, spanId;
 
         final boolean sampled;
@@ -149,6 +200,11 @@ public final class PendingSpans extends ReferenceQueue<TraceContext> {
         }
     }
 
+    /**
+     * Lookup keys are cheaper than real keys as reference tracking is not involved. We cannot use
+     * {@linkplain TraceContext} directly as a lookup key, as eventhough it has the same hash code as
+     * the real key, it would fail in equals comparison.
+     */
     static final class LookupKey {
 
         long traceIdHigh, traceId, spanId;
