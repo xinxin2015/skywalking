@@ -13,7 +13,7 @@
   <artifactId>tomcat-7.x-8.x-plugin</artifactId>
 
   <properties>
-    <tomcat.version>8.0.36</tomcat.version>
+    <tomcat.version>8.0.53</tomcat.version>
     <junit.version>4.12</junit.version>
     <apache-httpclient.version>4.5.2</apache-httpclient.version>
   </properties>
