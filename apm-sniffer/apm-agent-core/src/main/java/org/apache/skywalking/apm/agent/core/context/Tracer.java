@@ -9,6 +9,7 @@ import static org.apache.skywalking.apm.agent.core.context.internal.Lists.concat
 
 import java.io.Closeable;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.skywalking.apm.agent.core.context.handler.FinishedSpanHandler;
@@ -21,8 +22,11 @@ import org.apache.skywalking.apm.agent.core.context.internal.recorder.PendingSpa
 import org.apache.skywalking.apm.agent.core.context.propagation.CurrentTraceContext;
 import org.apache.skywalking.apm.agent.core.context.propagation.CurrentTraceContext.Scope;
 import org.apache.skywalking.apm.agent.core.context.propagation.Propagation;
+import org.apache.skywalking.apm.agent.core.context.propagation.Propagation.Factory;
+import org.apache.skywalking.apm.agent.core.context.propagation.Propagation.Getter;
 import org.apache.skywalking.apm.agent.core.context.propagation.SamplingFlags;
 import org.apache.skywalking.apm.agent.core.context.propagation.TraceContext;
+import org.apache.skywalking.apm.agent.core.context.propagation.TraceContext.Extractor;
 import org.apache.skywalking.apm.agent.core.context.propagation.TraceContextOrSamplingFlags;
 import org.apache.skywalking.apm.agent.core.context.propagation.TraceIdContext;
 import org.apache.skywalking.apm.agent.core.context.sampler.Sampler;
@@ -79,6 +83,7 @@ public class Tracer {
     private final CurrentTraceContext currentTraceContext;
     private final boolean traceId128Bit, supportsJoin, alwaysSampleLocal;
     private final AtomicBoolean noop;
+    private final LinkedList<Span> activeSpanStack = new LinkedList<>();
 
     Tracer(
         Clock clock,
@@ -554,4 +559,83 @@ public class Tracer {
         return nextId;
     }
 
+    private Span push(Span span) {
+        this.activeSpanStack.addLast(span);
+        return span;
+    }
+
+    private Span peek() {
+        if (activeSpanStack.isEmpty()) {
+            return null;
+        }
+        return activeSpanStack.getLast();
+    }
+
+    private Span pop() {
+        return activeSpanStack.removeLast();
+    }
+
+    public <C> Span createSpan(Extractor<C> extractor,C carrier) {
+        TraceContextOrSamplingFlags extracted = extractor.extract(carrier);
+        Span span = nextSpan(extracted);
+        return push(span.start());
+    }
+
+    public Span activeSpan() {
+        Span span = peek();
+        Assert.notNull(span,"No active span");
+        return span;
+    }
+
+    public boolean stopSpan(Span span) {
+        Span lastSpan = peek();
+        if (span.equals(lastSpan)) {
+            pop();
+            span.finish();
+        } else {
+            throw new IllegalStateException("Stopping the unexpected span = " + span);
+        }
+
+        return activeSpanStack.isEmpty();
+    }
+
+    public Clock getClock() {
+        return clock;
+    }
+
+    public Factory getPropagationFactory() {
+        return propagationFactory;
+    }
+
+    public FinishedSpanHandler getFinishedSpanHandler() {
+        return finishedSpanHandler;
+    }
+
+    public PendingSpans getPendingSpans() {
+        return pendingSpans;
+    }
+
+    public Sampler getSampler() {
+        return sampler;
+    }
+
+    public CurrentTraceContext getCurrentTraceContext() {
+        return currentTraceContext;
+    }
+
+    public boolean isTraceId128Bit() {
+        return traceId128Bit;
+    }
+
+    public boolean isSupportsJoin() {
+        return supportsJoin;
+    }
+
+    public boolean isAlwaysSampleLocal() {
+        return alwaysSampleLocal;
+    }
+
+    public AtomicBoolean getNoop() {
+        return noop;
+    }
 }

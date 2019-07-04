@@ -15,6 +15,7 @@
         <module>apm-agent</module>
         <module>apm-agent-core</module>
         <module>apm-agent-jul</module>
+      <module>apm-sdk-plugin</module>
     </modules>
 
     <properties>

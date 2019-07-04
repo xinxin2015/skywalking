@@ -17,7 +17,7 @@ import org.apache.skywalking.apm.agent.logging.LogFactory;
  */
 public abstract class AbstractClassEnhancePluginDefine {
 
-    private static final Log logger = LogFactory.getLog(AbstractClassEnhancePluginDefine.class);
+    protected static final Log logger = LogFactory.getLog(AbstractClassEnhancePluginDefine.class);
 
 
     /**

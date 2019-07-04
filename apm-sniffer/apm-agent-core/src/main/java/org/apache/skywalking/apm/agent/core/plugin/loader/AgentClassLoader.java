@@ -81,6 +81,7 @@ public class AgentClassLoader extends ClassLoader {
     public AgentClassLoader(ClassLoader parent) throws AgentPackageNotFoundException {
         super(parent);
         File agentDictionary = AgentPackagePath.getPath();
+        classPath = new LinkedList<>();
         classPath.add(new File(agentDictionary, "plugins"));
         classPath.add(new File(agentDictionary, "activations"));
     }

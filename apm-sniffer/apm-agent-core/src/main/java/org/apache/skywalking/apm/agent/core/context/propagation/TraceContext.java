@@ -567,7 +567,7 @@ public final class TraceContext extends SamplingFlags {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> T findExtra(Class<T> type, List<Object> extra) {
+    static <T> T findExtra(Class<T> type, List<Object> extra) {
         Assert.notNull(type, "type can not be null");
         for (Object object : extra) {
             if (object.getClass() == type) {
