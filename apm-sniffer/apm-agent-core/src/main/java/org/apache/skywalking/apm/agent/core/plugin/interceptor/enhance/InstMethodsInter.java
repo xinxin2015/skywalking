@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
 import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.Origin;
+import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.implementation.bind.annotation.SuperCall;
 import net.bytebuddy.implementation.bind.annotation.This;
 import org.apache.skywalking.apm.agent.core.plugin.PluginException;
@@ -28,6 +29,7 @@ public class InstMethodsInter {
         }
     }
 
+    @RuntimeType
     public Object interceptor(@This Object obj,@AllArguments Object[] allArguments,@SuperCall
         Callable<?> zuper,@Origin Method method) throws Throwable {
         EnhancedInstance targetObject = (EnhancedInstance)obj;

@@ -16,8 +16,12 @@ import org.apache.skywalking.apm.agent.core.context.propagation.TraceContext.Ext
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.EnhancedInstance;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.InstanceMethodsAroundInterceptor;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.MethodInterceptResult;
+import org.apache.skywalking.apm.agent.logging.Log;
+import org.apache.skywalking.apm.agent.logging.LogFactory;
 
 public class TomcatInvokeInterceptor implements InstanceMethodsAroundInterceptor {
+
+    private static final Log logger = LogFactory.getLog(TomcatInvokeInterceptor.class);
 
     private final Extractor<HttpServletRequest> extractor;
 

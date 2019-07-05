@@ -27,10 +27,13 @@ import org.apache.skywalking.apm.agent.core.context.propagation.Propagation.Gett
 import org.apache.skywalking.apm.agent.core.context.propagation.SamplingFlags;
 import org.apache.skywalking.apm.agent.core.context.propagation.TraceContext;
 import org.apache.skywalking.apm.agent.core.context.propagation.TraceContext.Extractor;
+import org.apache.skywalking.apm.agent.core.context.propagation.TraceContext.Injector;
 import org.apache.skywalking.apm.agent.core.context.propagation.TraceContextOrSamplingFlags;
 import org.apache.skywalking.apm.agent.core.context.propagation.TraceIdContext;
 import org.apache.skywalking.apm.agent.core.context.sampler.Sampler;
 import org.apache.skywalking.apm.agent.core.util.Assert;
+import org.apache.skywalking.apm.agent.logging.Log;
+import org.apache.skywalking.apm.agent.logging.LogFactory;
 
 
 /**
@@ -74,6 +77,8 @@ import org.apache.skywalking.apm.agent.core.util.Assert;
  * @see Propagation
  */
 public class Tracer {
+
+    private static final Log logger = LogFactory.getLog(Tracer.class);
 
     private final Clock clock;
     private final Propagation.Factory propagationFactory;
@@ -575,7 +580,7 @@ public class Tracer {
         return activeSpanStack.removeLast();
     }
 
-    public <C> Span createSpan(Extractor<C> extractor,C carrier) {
+    public <C> Span createEntrySpan(Extractor<C> extractor,C carrier) {
         TraceContextOrSamplingFlags extracted = extractor.extract(carrier);
         Span span = nextSpan(extracted);
         return push(span.start());
@@ -597,6 +602,18 @@ public class Tracer {
         }
 
         return activeSpanStack.isEmpty();
+    }
+
+    public <C> Span createExitSpan(Injector<C> injector,C carrier) {
+        Span parent = peek();
+        Span span;
+        if (parent == null) {
+            span = nextSpan();
+        } else {
+            span = newChild(parent.context());
+        }
+        injector.inject(span.context(),carrier);
+        return push(span.start());
     }
 
     public Clock getClock() {
@@ -638,4 +655,5 @@ public class Tracer {
     public AtomicBoolean getNoop() {
         return noop;
     }
+
 }

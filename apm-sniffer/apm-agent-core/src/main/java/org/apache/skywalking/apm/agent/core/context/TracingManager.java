@@ -5,8 +5,13 @@ import org.apache.skywalking.apm.agent.core.context.propagation.B3Propagation;
 import org.apache.skywalking.apm.agent.core.context.propagation.ExtraFieldPropagation;
 import org.apache.skywalking.apm.agent.core.context.propagation.ThreadLocalCurrentTraceContext;
 import org.apache.skywalking.apm.agent.core.context.propagation.TraceContext.Extractor;
+import org.apache.skywalking.apm.agent.core.context.propagation.TraceContext.Injector;
+import org.apache.skywalking.apm.agent.logging.Log;
+import org.apache.skywalking.apm.agent.logging.LogFactory;
 
 public class TracingManager implements BootService {
+
+    private static final Log logger = LogFactory.getLog(TracingManager.class);
 
     private static Tracing INSTANCE;
 
@@ -26,11 +31,13 @@ public class TracingManager implements BootService {
     }
 
     public static <C> Span createEntrySpan(Extractor<C> extractor,C carrier) {
-        return getInstance().tracer().createSpan(extractor,carrier);
+        Tracer tracer = getInstance().tracer();
+        return tracer.createEntrySpan(extractor,carrier);
     }
 
     public static Span activeSpan() {
-        return getInstance().tracer().activeSpan();
+        Tracer tracer = getInstance().tracer();
+        return tracer.activeSpan();
     }
 
     public static void stopSpan() {
@@ -38,9 +45,15 @@ public class TracingManager implements BootService {
     }
 
     public static void stopSpan(Span span) {
-        if (getInstance().tracer().stopSpan(span)) {
+        Tracer tracer = getInstance().tracer();
+        if (tracer.stopSpan(span)) {
             getInstance().remove();
         }
+    }
+
+    public static <C> Span createExitSpan(Injector<C> injector,C carrier) {
+        Tracer tracer = getInstance().tracer();
+        return tracer.createExitSpan(injector,carrier);
     }
 
     @Override
