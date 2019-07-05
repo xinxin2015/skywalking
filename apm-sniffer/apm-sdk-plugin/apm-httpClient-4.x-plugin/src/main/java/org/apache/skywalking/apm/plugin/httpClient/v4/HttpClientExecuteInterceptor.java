@@ -13,12 +13,9 @@ import org.apache.skywalking.apm.agent.core.context.propagation.Propagation.Sett
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.EnhancedInstance;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.InstanceMethodsAroundInterceptor;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.MethodInterceptResult;
-import org.apache.skywalking.apm.agent.logging.Log;
-import org.apache.skywalking.apm.agent.logging.LogFactory;
 
 public class HttpClientExecuteInterceptor implements InstanceMethodsAroundInterceptor {
 
-    private static final Log logger = LogFactory.getLog(HttpClientExecuteInterceptor.class);
 
     @Override
     public void beforeMethod(EnhancedInstance objInst, Method method, Object[] allArguments,
