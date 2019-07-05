@@ -41,7 +41,6 @@ public class HttpClientExecuteInterceptor implements InstanceMethodsAroundInterc
                     }
                 }), httpRequest);
 
-        logger.info("httpClient span start");
         request(httpRequest,httpHost,span);
     }
 
